@@ -94,6 +94,7 @@ class MinecraftSchematics(Dataset):
             (0.26862954, 0.26130258, 0.27577711),
         )
         self.view_indices = self._select_view_indices()
+        self.render_folders_by_model_id = self._index_render_folders()
 
         metadata = pd.read_parquet(self.parquet_path, columns=METADATA_COLUMNS)
         metadata = metadata.reset_index(drop=True)
@@ -257,6 +258,11 @@ class MinecraftSchematics(Dataset):
 
     def _render_folder(self, row):
         dataset_index = int(row["dataset_index"])
+        model_id = f"{dataset_index + 1:06d}"
+        indexed_folder = self.render_folders_by_model_id.get(model_id)
+        if indexed_folder is not None:
+            return indexed_folder
+
         title = row["title"]
         folder_name = f"{dataset_index + 1:06d}_{_safe_name(title)}"
         folder = self.renders_path / folder_name
@@ -268,6 +274,22 @@ class MinecraftSchematics(Dataset):
             return legacy_folder
 
         return folder
+
+    def _index_render_folders(self):
+        folders = {}
+        if not self.renders_path.exists():
+            return folders
+
+        for folder in self.renders_path.iterdir():
+            if not folder.is_dir():
+                continue
+            prefix = folder.name.split("_", 1)[0]
+            if not prefix.isdigit():
+                continue
+            model_id = f"{int(prefix):06d}"
+            if model_id not in folders or folder.name.startswith(f"{model_id}_"):
+                folders[model_id] = folder
+        return folders
 
     def _load_images(self, row):
         folder = self._render_folder(row)
