@@ -5,11 +5,11 @@ import spconv.pytorch as spconv
 
 
 class SparseCNNEncoder(pl.LightningModule):
-    def __init__(self, voxel_size, ef_dim, z_dim, out_dim, **kwargs):
+    def __init__(self, voxel_size, ef_dim, z_dim, out_dim, input_channels=3, **kwargs):
         super().__init__()
         self.voxel_size = voxel_size
         self.sparseModel = spconv.SparseSequential(
-            spconv.SubMConv3d(in_channels=3, out_channels=ef_dim, kernel_size=3, bias=False),
+            spconv.SubMConv3d(in_channels=input_channels, out_channels=ef_dim, kernel_size=3, bias=False),
             nn.BatchNorm1d(ef_dim),
             nn.ReLU(inplace=True),
             spconv.SparseMaxPool3d(kernel_size=2, stride=2),
@@ -36,8 +36,9 @@ class SparseCNNEncoder(pl.LightningModule):
             spconv.ToDense()
         )
 
+        pooled_size = max(1, voxel_size // 32)
         self.mlp = nn.Sequential(
-            nn.Linear(4096, out_dim),
+            nn.Linear(z_dim * pooled_size ** 3, out_dim),
             nn.ReLU(inplace=True),
             # nn.Dropout(p=0.2),
             nn.Linear(out_dim, out_dim)

@@ -18,8 +18,10 @@ class CLIPImageEncoder(pl.LightningModule):
     def forward(self, images, data_dict):
         if "clip_embeddings_img" in data_dict:
             output = data_dict["clip_embeddings_img"]
-        # else:
-        #     output = self.clip_model.encode_image(images).reshape(-1, self.num_views, self.clip_model.visual.output_dim)
-        #     output = torch.mean(output, dim=1)
-        #     output /= output.norm(dim=1, keepdim=True)
+        else:
+            with torch.no_grad():
+                output = self.clip_model.encode_image(images).reshape(-1, self.num_views, self.clip_model.visual.output_dim)
+                output = torch.mean(output, dim=1)
+                output /= output.norm(dim=1, keepdim=True)
+            output = output.to(torch.float32)
         return self.mlp(output)

@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import lightning.pytorch as pl
 
@@ -16,7 +17,9 @@ class CLIPTextEncoder(pl.LightningModule):
     def forward(self, tokens, data_dict):
         if "clip_embeddings_text" in data_dict:
             output = data_dict["clip_embeddings_text"]
-        # else:
-        #     output = self.clip_model.encode_text(tokens)
-        #     output /= output.norm(dim=1, keepdim=True)
+        else:
+            with torch.no_grad():
+                output = self.clip_model.encode_text(tokens)
+                output /= output.norm(dim=1, keepdim=True)
+            output = output.to(torch.float32)
         return self.mlp(output)

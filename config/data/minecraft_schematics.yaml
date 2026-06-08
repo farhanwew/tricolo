@@ -1,0 +1,35 @@
+# Managed by Hydra
+
+defaults:
+  - base
+
+dataset: MinecraftSchematics
+dataset_path: ${project_root_path}
+parquet_path: ${project_root_path}/data (1).parquet
+renders_path: ${project_root_path}/renders
+exp_data_root_path: ${project_root_path}/data/minecraft_schematics/preprocessed/exp_data
+
+batch_size: 64
+num_workers: 4
+image_size: 224
+voxel_size: 32
+raw_voxel_size: 32
+num_views: 6
+available_views: 12
+view_pattern: view_{view_idx:02d}.jpg
+
+vocab_size: 50000
+max_text_len: 77
+description_max_chars: 512
+include_description: true
+include_tags: true
+
+train_ratio: 0.8
+val_ratio: 0.1
+split_seed: 123
+
+allow_missing_images: false
+drop_empty_voxels: true
+voxel_feature_mode: block_hash
+voxel_cache_dtype: uint16
+voxel_cache_batch_size: 128

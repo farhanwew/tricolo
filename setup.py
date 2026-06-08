@@ -9,6 +9,6 @@ setup(
     packages=find_packages(include=("tricolo", "data")),
     install_requires=[
         "tqdm", "lightning", "wandb", "hydra-core", "pynrrd", "trimesh", "spconv-cu113", "pyrender",
-        "CLIP @ git+https://github.com/openai/CLIP.git", "efficientnet_pytorch"
+        "CLIP @ git+https://github.com/openai/CLIP.git", "efficientnet_pytorch", "pandas", "pyarrow", "Pillow"
     ]
 )
