@@ -282,7 +282,7 @@ class MinecraftSchematics(Dataset):
 
             with Image.open(image_path) as image:
                 image = image.convert("RGB").resize((self.image_size, self.image_size), Image.BICUBIC)
-                tensor = torch.from_numpy(np.asarray(image)).permute(2, 0, 1).to(torch.float32) / 255.0
+                tensor = torch.from_numpy(np.array(image, copy=True)).permute(2, 0, 1).to(torch.float32) / 255.0
                 images.append(self.normalize(tensor))
 
         return torch.stack(images, dim=0)
