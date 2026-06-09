@@ -2,6 +2,7 @@ import argparse
 import json
 import subprocess
 import tempfile
+import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +13,9 @@ from tqdm import tqdm
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
+MINECRAFT_DATA_VERSION_ALIASES = {
+    "1.16.4": "1.16.2",
+}
 
 
 def collect_unique_state_ids(input_path, batch_size):
@@ -27,7 +31,7 @@ def collect_unique_state_ids(input_path, batch_size):
     return sorted(state_ids)
 
 
-def build_state_id_name_map(input_path, output_path, version, batch_size):
+def build_state_id_name_map_from_node(input_path, output_path, version, batch_size):
     if output_path.exists():
         with output_path.open("r", encoding="utf-8") as file:
             return json.load(file)
@@ -53,6 +57,41 @@ def build_state_id_name_map(input_path, output_path, version, batch_size):
 
     with output_path.open("r", encoding="utf-8") as file:
         return json.load(file)
+
+
+def build_state_id_name_map_from_minecraft_data(output_path, version):
+    if output_path.exists():
+        with output_path.open("r", encoding="utf-8") as file:
+            return json.load(file)
+
+    data_version = MINECRAFT_DATA_VERSION_ALIASES.get(version, version)
+    url = f"https://raw.githubusercontent.com/PrismarineJS/minecraft-data/master/data/pc/{data_version}/blocks.json"
+    with urllib.request.urlopen(url, timeout=60) as response:
+        blocks = json.loads(response.read().decode("utf-8"))
+
+    mapping = {}
+    for block in blocks:
+        name = block["name"]
+        for state_id in range(int(block["minStateId"]), int(block["maxStateId"]) + 1):
+            mapping[str(state_id)] = name
+
+    output_path.write_text(json.dumps(mapping, indent=2), encoding="utf-8")
+    return mapping
+
+
+def build_state_id_name_map(input_path, output_path, version, batch_size, mapping_source):
+    if mapping_source == "node":
+        return build_state_id_name_map_from_node(input_path, output_path, version, batch_size)
+    if mapping_source == "minecraft-data-json":
+        return build_state_id_name_map_from_minecraft_data(output_path, version)
+    if mapping_source != "auto":
+        raise ValueError(f"Unknown mapping source: {mapping_source}")
+
+    try:
+        return build_state_id_name_map_from_node(input_path, output_path, version, batch_size)
+    except Exception as error:
+        print(f"Node mapping failed ({error}); falling back to minecraft-data blocks.json")
+        return build_state_id_name_map_from_minecraft_data(output_path, version)
 
 
 def append_unique_names(table, state_id_to_name):
@@ -125,6 +164,12 @@ def parse_args():
     parser.add_argument("--map-output", default=str(PROJECT_ROOT / "block_state_id_to_name.json"), help="Output JSON mapping path.")
     parser.add_argument("--version", default="1.16.4", help="Minecraft version for prismarine-block.")
     parser.add_argument(
+        "--mapping-source",
+        choices=("auto", "node", "minecraft-data-json"),
+        default="auto",
+        help="How to build block state id names. minecraft-data-json avoids npm/node_modules.",
+    )
+    parser.add_argument(
         "--mode",
         choices=("map", "unique-names", "voxel-names"),
         default="unique-names",
@@ -145,7 +190,13 @@ def main():
     output_path = Path(args.output)
     map_output = Path(args.map_output)
 
-    state_id_to_name = build_state_id_name_map(input_path, map_output, args.version, args.batch_size)
+    state_id_to_name = build_state_id_name_map(
+        input_path,
+        map_output,
+        args.version,
+        args.batch_size,
+        args.mapping_source,
+    )
     print(f"Wrote/loaded {len(state_id_to_name)} block state mappings: {map_output}")
 
     if args.mode == "map":
