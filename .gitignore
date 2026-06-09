@@ -20,3 +20,7 @@ log/
 logs/
 wandb
 *.log
+node_modules/
+block_state_id_to_name.json
+data_with_block_names.parquet
+data_with_voxel_names.parquet

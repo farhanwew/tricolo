@@ -1,0 +1,11 @@
+{
+  "name": "tricolo-minecraft-tools",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "block-map": "node scripts/block_state_ids_to_names.js"
+  },
+  "dependencies": {
+    "prismarine-block": "^1.23.0"
+  }
+}
